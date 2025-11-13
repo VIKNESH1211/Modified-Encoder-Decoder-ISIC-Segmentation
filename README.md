@@ -1,31 +1,45 @@
-## Modified Encoder - Decoder
+# Modified Encoder–Decoder Architectures for Binary Image Segmentation
 
-### Results 
-Best validation metrics observed over 20 epochs for each encoder variant.
+This repository presents a modular and extensible framework for **binary image segmentation** using **U-Net** architectures with a variety of pretrained encoder backbones. It enables reproducible experimentation, comparison, and benchmarking of multiple encoder variants under a unified training pipeline.
 
-| Encoder | Best Val Dice | Best Val Accuracy | Best Val Loss | Notes |
-|---|---:|---:|---:|---|
-| VGG16 | 0.9299 | 96.82% | 0.0839 | Taken from the highest recorded validation Dice in the VGG16 run. |
-| ResNet-18 | 0.9318 | 96.96% | 0.0800 | Highest validation Dice observed across epochs in the ResNet-18 run. |
-| ResNeXt50 32x4d | 0.9297 | 96.88% | 0.0924 | Highest validation Dice observed in the ResNeXt50 run. |
-| InceptionV4 | 0.9272 | 96.81% | 0.0837 | From epoch with best observed validation Dice in notebook output. |
-| EfficientNet-B7 | 0.9402 | 97.44% | 0.0719 | From epoch with best observed validation Dice in notebook output. |
+---
 
-If additional epochs surpass these metrics, update the table accordingly.
-#### Test Results
-Reported performance on the held-out test set.
+## 🧠 Overview
 
-| Encoder | Test Loss | Test Accuracy | Test Dice |
-|---|---:|---:|---:|
-| EfficientNet-B7 | 0.0751 | 97.20% | 0.9422 |
-| InceptionV4 | 0.0784 | 97.04% | 0.9393 |
-| ResNeXt50 32x4d | 0.0808 | 96.89% | 0.9363 |
-| ResNet-18 | 0.0874 | 96.73% | 0.9332 |
-| VGG16 | 0.0897 | 96.47% | 0.9308 |
+Each encoder variant is implemented as a separate submodule with a consistent command-line interface (CLI). The framework leverages **`segmentation_models_pytorch`** for model definitions and supports a range of encoders including **VGG16**, **ResNet-18**, **ResNeXt50 (32×4d)**, **InceptionV4**, and **EfficientNet-B7**.
 
-Reusable, CLI-driven training entry points for binary image segmentation using U-Net with different encoders from `segmentation_models_pytorch`. The code generalizes the logic from the `Segmentation_Binary.ipynb` notebook into a structured Python package.
+---
 
-### Folder structure
+## 📊 Experimental Results
+
+### Validation Performance (Best Epoch over 20 Epochs)
+
+| Encoder               | Best Val Dice | Best Val Accuracy | Best Val Loss | Notes                                                       |
+| --------------------- | ------------: | ----------------: | ------------: | ----------------------------------------------------------- |
+| **VGG16**             |        0.9299 |            96.82% |        0.0839 | Highest recorded validation Dice during VGG16 run.          |
+| **ResNet-18**         |        0.9318 |            96.96% |        0.0800 | Peak validation Dice observed in ResNet-18 experiment.      |
+| **ResNeXt50 (32×4d)** |        0.9297 |            96.88% |        0.0924 | Maximum validation Dice achieved in ResNeXt50 run.          |
+| **InceptionV4**       |        0.9272 |            96.81% |        0.0837 | Best validation Dice epoch recorded in InceptionV4 run.     |
+| **EfficientNet-B7**   |    **0.9402** |        **97.44%** |    **0.0719** | Superior validation Dice across all encoder configurations. |
+
+*Note: Update this table if subsequent epochs yield improved metrics.*
+
+### Test Set Evaluation
+
+| Encoder               |  Test Loss | Test Accuracy |  Test Dice |
+| --------------------- | ---------: | ------------: | ---------: |
+| **EfficientNet-B7**   | **0.0751** |    **97.20%** | **0.9422** |
+| **InceptionV4**       |     0.0784 |        97.04% |     0.9393 |
+| **ResNeXt50 (32×4d)** |     0.0808 |        96.89% |     0.9363 |
+| **ResNet-18**         |     0.0874 |        96.73% |     0.9332 |
+| **VGG16**             |     0.0897 |        96.47% |     0.9308 |
+
+These results demonstrate consistent segmentation performance across architectures, with **EfficientNet-B7** achieving the best overall accuracy and Dice coefficient.
+
+---
+
+## 📁 Repository Structure
+
 ```
 Modified Encoder - Decoder/
 ├─ __init__.py
@@ -51,37 +65,63 @@ Modified Encoder - Decoder/
    └─ unet_efficientnet_b7_training.py
 ```
 
-### Requirements
-- Python 3.9+
-- PyTorch (with CUDA if available)
-- segmentation-models-pytorch
-- albumentations, albumentations[imgaug] (optional), opencv-python
-- scikit-learn, tqdm
+---
 
-Example install (PowerShell):
+## ⚙️ Requirements
+
+* Python ≥ 3.9
+* PyTorch (with CUDA if available)
+* `segmentation-models-pytorch`
+* `albumentations`, `opencv-python`
+* `scikit-learn`, `tqdm`
+
+**Example installation (PowerShell):**
+
 ```powershell
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip install segmentation-models-pytorch albumentations opencv-python scikit-learn tqdm
 ```
-Adjust CUDA/PyTorch versions as needed.
 
-### Dataset format
-- Images live in a directory (e.g., `.../ISBI2016_ISIC_Part1_Training_Data`)
-- Masks live in a parallel directory (e.g., `.../ISBI2016_ISIC_Part1_Training_GroundTruth`)
-- Default mask filename pattern is `{stem}_Segmentation.png` for each `image.jpg`
-  - You can change this via `--mask-template` and supported `--image-extensions`.
+Adjust CUDA and PyTorch versions according to your hardware setup.
 
-### Running training
-Every encoder folder provides a training script that exposes a uniform CLI. Paths below are shown for Windows PowerShell; quote paths with spaces.
+---
 
-Minimal example (ResNet-18 encoder):
+## 🧩 Dataset Organization
+
+The dataset should follow a parallel directory structure:
+
+```
+📂 ISIC/
+├─ ISBI2016_ISIC_Part1_Training_Data/
+│  ├─ image_1.jpg
+│  ├─ image_2.jpg
+│  └─ ...
+└─ ISBI2016_ISIC_Part1_Training_GroundTruth/
+   ├─ image_1_Segmentation.png
+   ├─ image_2_Segmentation.png
+   └─ ...
+```
+
+* Mask filenames follow the pattern `{stem}_Segmentation.png`.
+* The pattern can be modified using `--mask-template` if necessary.
+* Supported image extensions include `jpg`, `jpeg`, and `png`.
+
+---
+
+## 🏃‍♂️ Training and Evaluation
+
+Each encoder directory includes an independent training script that exposes a consistent CLI.
+
+### Example 1 — Minimal Training (ResNet-18)
+
 ```powershell
 python ".\Modified Encoder - Decoder\unet_resnet18\unet_resnet18_training.py" ^
   --train-image-dir "D:\data\ISIC\ISBI2016_ISIC_Part1_Training_Data" ^
   --train-mask-dir  "D:\data\ISIC\ISBI2016_ISIC_Part1_Training_GroundTruth"
 ```
 
-With validation directory explicitly provided:
+### Example 2 — Explicit Validation Split
+
 ```powershell
 python ".\Modified Encoder - Decoder\unet_resnet18\unet_resnet18_training.py" ^
   --train-image-dir "D:\data\ISIC\train_images" ^
@@ -90,71 +130,95 @@ python ".\Modified Encoder - Decoder\unet_resnet18\unet_resnet18_training.py" ^
   --val-mask-dir    "D:\data\ISIC\val_masks"
 ```
 
-Train and then evaluate on a held-out test set:
+### Example 3 — Train and Evaluate (VGG16 Encoder)
+
 ```powershell
 python ".\Modified Encoder - Decoder\unet_vgg16\unet_vgg16_training.py" ^
   --train-image-dir "D:\data\ISIC\ISBI2016_ISIC_Part1_Training_Data" ^
   --train-mask-dir  "D:\data\ISIC\ISBI2016_ISIC_Part1_Training_GroundTruth" ^
-  --epochs 20 --batch-size 8 --image-size 256 --optimizer adam --lr 1e-4 ^
+  --epochs 20 --batch-size 8 --image-size 256 ^
+  --optimizer adam --lr 1e-4 ^
   --output-path ".\outputs\unet_vgg16_weights.pth" ^
   --test-image-dir "D:\data\ISIC\ISBI2016_ISIC_Part1_Test_Data" ^
   --test-mask-dir  "D:\data\ISIC\ISBI2016_ISIC_Part1_Test_GroundTruth"
 ```
 
-Switching encoders is as simple as calling a different script:
-- VGG16: `unet_vgg16\unet_vgg16_training.py`
-- ResNet-18: `unet_resnet18\unet_resnet18_training.py`
-- ResNeXt50 32x4d: `unet_resnext50_32x4d\unet_resnext50_32x4d_training.py`
-- InceptionV4: `unet_inceptionv4\unet_inceptionv4_training.py`
-- EfficientNet-B7: `unet_efficientnet_b7\unet_efficientnet_b7_training.py`
+### Switching Encoder Backbones
 
-### Key CLI arguments
-Data:
-- `--train-image-dir` (required): training images directory
-- `--train-mask-dir` (required): training masks directory
-- `--val-image-dir`, `--val-mask-dir`: optional explicit validation split
-- `--mask-template`: mask filename pattern (default `{stem}_Segmentation.png`)
-- `--image-extensions`: extensions to include (default: jpg jpeg png)
+* **VGG16:** `unet_vgg16\unet_vgg16_training.py`
+* **ResNet-18:** `unet_resnet18\unet_resnet18_training.py`
+* **ResNeXt50 (32×4d):** `unet_resnext50_32x4d\unet_resnext50_32x4d_training.py`
+* **InceptionV4:** `unet_inceptionv4\unet_inceptionv4_training.py`
+* **EfficientNet-B7:** `unet_efficientnet_b7\unet_efficientnet_b7_training.py`
 
-Training:
-- `--epochs` (default 20)
-- `--batch-size` (default 8)
-- `--num-workers` (default 4)
-- `--image-size` (default 256)
-- `--val-split` (default 0.2 if val dirs not provided)
-- `--augment` (default true)
+---
 
-Optimization and loss:
-- `--optimizer` {adam, adamw, sgd} (default adam)
-- `--lr` (default 1e-4)
-- `--weight-decay` (default 0.0)
-- `--loss` {dice, focal, bce, tversky} (default dice)
+## 🧮 Key CLI Parameters
 
-Model:
-- `--encoder-weights` (default imagenet; use `none` for random init)
-- `--in-channels` (default 3)
-- `--classes` (default 1 for binary)
+### Data Configuration
 
-Runtime and outputs:
-- `--threshold` (default 0.5) for binarizing predictions when computing metrics
-- `--monitor-metric` {dice, accuracy, loss} (default dice) for checkpointing
-- `--device` {auto, cuda, cpu} (default auto)
-- `--seed` (default 42)
-- `--output-path` path to save best weights (defaults per-encoder)
-- `--history-path` optional JSON file to save per-epoch train/val metrics
+| Argument                            | Description                                           |
+| ----------------------------------- | ----------------------------------------------------- |
+| `--train-image-dir`                 | Path to training images *(required)*                  |
+| `--train-mask-dir`                  | Path to training masks *(required)*                   |
+| `--val-image-dir`, `--val-mask-dir` | Optional validation directories                       |
+| `--mask-template`                   | Filename pattern (default: `{stem}_Segmentation.png`) |
+| `--image-extensions`                | Image extensions to include                           |
 
-### Outputs
-- Best model weights saved to `--output-path` when validation improves on the selected `--monitor-metric`.
-- Optional training history JSON if `--history-path` is provided.
-- If `--test-image-dir` and `--test-mask-dir` are provided, a final evaluation is printed after training.
+### Training Parameters
 
-### Tips
-- Ensure masks are binary (0/255). The loader internally binarizes to {0,1}.
-- If your filenames differ, adapt `--mask-template` (e.g., `{stem}_mask.png`).
-- Use `--encoder-weights none` to train from scratch.
+| Argument        | Description                                  |
+| --------------- | -------------------------------------------- |
+| `--epochs`      | Default: 20                                  |
+| `--batch-size`  | Default: 8                                   |
+| `--num-workers` | Default: 4                                   |
+| `--image-size`  | Default: 256                                 |
+| `--val-split`   | Default: 0.2 (if no validation set provided) |
+| `--augment`     | Apply data augmentation (default: True)      |
 
-### License
-This repository is for research and educational purposes. Refer to the original datasets’ licenses for usage restrictions.
+### Optimization
 
+| Argument         | Description                                     |
+| ---------------- | ----------------------------------------------- |
+| `--optimizer`    | `{adam, adamw, sgd}` (default: `adam`)          |
+| `--lr`           | Learning rate (default: `1e-4`)                 |
+| `--weight-decay` | Default: `0.0`                                  |
+| `--loss`         | `{dice, focal, bce, tversky}` (default: `dice`) |
 
+### Model and Runtime
 
+| Argument            | Description                                |
+| ------------------- | ------------------------------------------ |
+| `--encoder-weights` | Pretrained weights (default: `imagenet`)   |
+| `--in-channels`     | Input channels (default: 3)                |
+| `--classes`         | Output classes (default: 1 for binary)     |
+| `--threshold`       | Threshold for binarization (default: 0.5)  |
+| `--monitor-metric`  | `{dice, accuracy, loss}` (default: `dice`) |
+| `--device`          | `{auto, cuda, cpu}` (default: auto)        |
+| `--seed`            | Random seed (default: 42)                  |
+| `--output-path`     | Save path for best weights                 |
+| `--history-path`    | Optional JSON file to store epoch metrics  |
+
+---
+
+## 📈 Outputs
+
+* Best model weights saved automatically based on the monitored metric (`--monitor-metric`).
+* Optional training history (`.json`) file containing epoch-wise metrics.
+* Automatic test evaluation if test directories are provided.
+
+---
+
+## 🧩 Practical Notes
+
+* Ensure ground truth masks are **binary (0/255)**; the loader automatically converts them to `{0,1}`.
+* Adapt `--mask-template` for custom naming schemes (e.g., `{stem}_mask.png`).
+* Use `--encoder-weights none` to train models from scratch.
+
+---
+
+## 📜 License
+
+This repository is intended for **research and educational purposes**. Please refer to the respective dataset licenses for any restrictions regarding redistribution or commercial use.
+
+--
