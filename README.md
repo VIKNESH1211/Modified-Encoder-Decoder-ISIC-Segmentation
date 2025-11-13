@@ -1,6 +1,6 @@
 ## Modified Encoder - Decoder
 
-### Results (from Segmentation_Binary.ipynb)
+### Results 
 Best validation metrics observed over 20 epochs for each encoder variant.
 
 | Encoder | Best Val Dice | Best Val Accuracy | Best Val Loss | Notes |
@@ -155,5 +155,6 @@ Runtime and outputs:
 
 ### License
 This repository is for research and educational purposes. Refer to the original datasets’ licenses for usage restrictions.
+
 
 
