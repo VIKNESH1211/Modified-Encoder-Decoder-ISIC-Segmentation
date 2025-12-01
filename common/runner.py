@@ -16,6 +16,7 @@ from . import (
     create_loss,
     create_optimizer,
     evaluate,
+    plot_training_history,
     run_training_loop,
     set_global_seeds,
 )
@@ -64,12 +65,14 @@ def build_parser(default_output_name: str) -> argparse.ArgumentParser:
     parser.add_argument("--classes", type=int, default=1, help="Number of output classes.")
 
     parser.add_argument("--threshold", type=float, default=0.5, help="Threshold applied to probabilities for metric computation.")
-    parser.add_argument("--monitor-metric", choices=["dice", "accuracy", "loss"], default="dice", help="Validation metric used for checkpointing.")
+    parser.add_argument("--monitor-metric", choices=["dice", "iou", "accuracy", "loss"], default="dice", help="Validation metric used for checkpointing.")
     parser.add_argument("--device", default="auto", help="Device to use: 'auto', 'cuda', 'cpu'.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
 
     parser.add_argument("--output-path", default=default_output_name, help="File path to store the best model weights.")
     parser.add_argument("--history-path", help="Optional JSON file to save the training history.")
+    parser.add_argument("--plot-path", help="Optional path to save the training history plot. If not provided, plot is displayed but not saved.")
+    parser.add_argument("--no-plot", action="store_true", help="Disable displaying the training history plot.")
 
     return parser
 
@@ -225,6 +228,14 @@ def run_cli(
             encoding="utf-8",
         )
 
+    # Plot training history
+    if not args.no_plot:
+        plot_training_history(
+            history,
+            save_path=args.plot_path,
+            show_plot=True,
+        )
+
     test_loader = _create_test_loader(args, device)
     if test_loader is not None:
         print("\nEvaluating on the provided test set...")
@@ -242,7 +253,8 @@ def run_cli(
         print(
             f"Test -> Loss: {test_metrics.loss:.4f}, "
             f"Acc: {test_metrics.accuracy*100:.2f}%, "
-            f"Dice: {test_metrics.dice:.4f}"
+            f"Dice: {test_metrics.dice:.4f}, "
+            f"IOU: {test_metrics.iou:.4f}"
         )
 
 

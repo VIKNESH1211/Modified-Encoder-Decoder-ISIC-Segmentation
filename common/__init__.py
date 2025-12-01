@@ -15,6 +15,10 @@ from .train_utils import (
     train_one_epoch,
     evaluate,
     run_training_loop,
+    dice_score,
+    iou_score,
+    compute_metrics,
+    plot_training_history,
 )
 from .runner import run_cli, build_parser
 
@@ -29,6 +33,10 @@ __all__ = [
     "train_one_epoch",
     "evaluate",
     "run_training_loop",
+    "dice_score",
+    "iou_score",
+    "compute_metrics",
+    "plot_training_history",
     "run_cli",
     "build_parser",
 ]

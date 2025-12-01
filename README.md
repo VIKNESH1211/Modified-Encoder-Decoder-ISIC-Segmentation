@@ -1,27 +1,32 @@
 ## Modified Encoder - Decoder
 
 ### Results (from Segmentation_Binary.ipynb)
+
 Best validation metrics observed over 20 epochs for each encoder variant.
 
-| Encoder | Best Val Dice | Best Val Accuracy | Best Val Loss | Notes |
-|---|---:|---:|---:|---|
-| VGG16 | 0.9299 | 96.82% | 0.0839 | Taken from the highest recorded validation Dice in the VGG16 run. |
-| ResNet-18 | 0.9318 | 96.96% | 0.0800 | Highest validation Dice observed across epochs in the ResNet-18 run. |
-| ResNeXt50 32x4d | 0.9297 | 96.88% | 0.0924 | Highest validation Dice observed in the ResNeXt50 run. |
-| InceptionV4 | 0.9272 | 96.81% | 0.0837 | From epoch with best observed validation Dice in notebook output. |
-| EfficientNet-B7 | 0.9402 | 97.44% | 0.0719 | From epoch with best observed validation Dice in notebook output. |
+| Encoder         | Best Val Dice | Predicted Val IoU | Best Val Accuracy | Best Val Loss | Notes                                                                |
+| --------------- | ------------: | ----------------: | ----------------: | ------------: | -------------------------------------------------------------------- |
+| VGG16           |        0.9299 |            0.8692 |            96.82% |        0.0839 | Taken from the highest recorded validation Dice in the VGG16 run.    |
+| ResNet-18       |        0.9318 |            0.8721 |            96.96% |        0.0800 | Highest validation Dice observed across epochs in the ResNet-18 run. |
+| ResNeXt50 32x4d |        0.9297 |            0.8690 |            96.88% |        0.0924 | Highest validation Dice observed in the ResNeXt50 run.               |
+| InceptionV4     |        0.9272 |            0.8647 |            96.81% |        0.0837 | From epoch with best observed validation Dice in notebook output.    |
+| EfficientNet-B7 |        0.9402 |            0.8872 |            97.44% |        0.0719 | From epoch with best observed validation Dice in notebook output.    |
 
-If additional epochs surpass these metrics, update the table accordingly.
+> If additional epochs surpass these metrics, update the table accordingly.
+
 #### Test Results
+
 Reported performance on the held-out test set.
 
-| Encoder | Test Loss | Test Accuracy | Test Dice |
-|---|---:|---:|---:|
-| EfficientNet-B7 | 0.0751 | 97.20% | 0.9422 |
-| InceptionV4 | 0.0784 | 97.04% | 0.9393 |
-| ResNeXt50 32x4d | 0.0808 | 96.89% | 0.9363 |
-| ResNet-18 | 0.0874 | 96.73% | 0.9332 |
-| VGG16 | 0.0897 | 96.47% | 0.9308 |
+| Encoder         | Test Loss | Test Accuracy | Test Dice | Predicted Test IoU |
+| --------------- | --------: | ------------: | --------: | -----------------: |
+| EfficientNet-B7 |    0.0751 |        97.20% |    0.9422 |             0.8906 |
+| InceptionV4     |    0.0784 |        97.04% |    0.9393 |             0.8856 |
+| ResNeXt50 32x4d |    0.0808 |        96.89% |    0.9363 |             0.8799 |
+| ResNet-18       |    0.0874 |        96.73% |    0.9332 |             0.8747 |
+| VGG16           |    0.0897 |        96.47% |    0.9308 |             0.8705 |
+
+---
 
 Reusable, CLI-driven training entry points for binary image segmentation using U-Net with different encoders from `segmentation_models_pytorch`. The code generalizes the logic from the `Segmentation_Binary.ipynb` notebook into a structured Python package.
 

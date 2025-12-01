@@ -6,6 +6,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch import nn, optim
@@ -20,6 +21,7 @@ class EpochMetrics:
     loss: float
     accuracy: float
     dice: float
+    iou: float
 
 
 @dataclass
@@ -45,14 +47,96 @@ def set_global_seeds(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
+def dice_score(
+    predictions: torch.Tensor,
+    targets: torch.Tensor,
+    *,
+    threshold: float = 0.5,
+    smooth: float = 1e-7,
+) -> float:
+    """
+    Calculate Dice score for binary segmentation predictions.
+    
+    Args:
+        predictions: Raw model predictions (logits) or probabilities.
+        targets: Ground truth binary masks.
+        threshold: Threshold for binarizing predictions (if logits).
+        smooth: Smoothing factor to avoid division by zero.
+    
+    Returns:
+        Dice score as a float.
+    """
+    # Handle logits by applying sigmoid and thresholding
+    if predictions.min() < 0 or predictions.max() > 1:
+        probs = torch.sigmoid(predictions)
+    else:
+        probs = predictions
+    
+    preds = (probs > threshold).float()
+    
+    # Flatten tensors for calculation
+    preds_flat = preds.view(-1)
+    targets_flat = targets.view(-1)
+    
+    # Calculate intersection and union
+    intersection = (preds_flat * targets_flat).sum().item()
+    union = preds_flat.sum().item() + targets_flat.sum().item()
+    
+    # Dice score: 2 * intersection / (prediction + target)
+    dice = (2.0 * intersection + smooth) / (union + smooth)
+    
+    return dice
+
+
+def iou_score(
+    predictions: torch.Tensor,
+    targets: torch.Tensor,
+    *,
+    threshold: float = 0.5,
+    smooth: float = 1e-7,
+) -> float:
+    """
+    Calculate Intersection over Union (IOU) for binary segmentation predictions.
+    
+    Args:
+        predictions: Raw model predictions (logits) or probabilities.
+        targets: Ground truth binary masks.
+        threshold: Threshold for binarizing predictions (if logits).
+        smooth: Smoothing factor to avoid division by zero.
+    
+    Returns:
+        IOU score as a float.
+    """
+    # Handle logits by applying sigmoid and thresholding
+    if predictions.min() < 0 or predictions.max() > 1:
+        probs = torch.sigmoid(predictions)
+    else:
+        probs = predictions
+    
+    preds = (probs > threshold).float()
+    
+    # Flatten tensors for calculation
+    preds_flat = preds.view(-1)
+    targets_flat = targets.view(-1)
+    
+    # Calculate intersection and union
+    intersection = (preds_flat * targets_flat).sum().item()
+    union = (preds_flat + targets_flat - preds_flat * targets_flat).sum().item()
+    
+    # IOU: intersection / union
+    iou = (intersection + smooth) / (union + smooth)
+    
+    return iou
+
+
 def compute_metrics(
     predictions: torch.Tensor,
     targets: torch.Tensor,
     *,
     threshold: float = 0.5,
-) -> Tuple[float, float]:
+) -> Tuple[float, float, float]:
     """
-    Compute pixel accuracy and Dice score for binary predictions.
+    Compute pixel accuracy, Dice score, and IOU for binary predictions.
     """
     probs = torch.sigmoid(predictions)
     preds = (probs > threshold).float()
@@ -61,11 +145,11 @@ def compute_metrics(
     total = float(targets.numel())
     accuracy = correct / total
 
-    intersection = (preds * targets).sum().item()
-    union = preds.sum().item() + targets.sum().item()
-    dice = (2.0 * intersection + 1e-7) / (union + 1e-7)
+    # Use the dedicated dice_score and iou_score functions
+    dice = dice_score(predictions, targets, threshold=threshold)
+    iou = iou_score(predictions, targets, threshold=threshold)
 
-    return accuracy, dice
+    return accuracy, dice, iou
 
 
 def train_one_epoch(
@@ -83,7 +167,8 @@ def train_one_epoch(
     total_correct = 0.0
     total_pixels = 0.0
     total_intersection = 0.0
-    total_union = 0.0
+    total_union_dice = 0.0  # For Dice: sum of preds + sum of targets
+    total_union_iou = 0.0    # For IOU: actual union (preds + targets - intersection)
 
     progress_bar = tqdm(dataloader, desc=desc, leave=False)
     for images, masks in progress_bar:
@@ -106,16 +191,22 @@ def train_one_epoch(
             total_pixels += float(masks.numel())
 
             intersection = (preds * masks).sum().item()
-            union = preds.sum().item() + masks.sum().item()
+            union_dice = preds.sum().item() + masks.sum().item()
+            union_iou = (preds + masks - preds * masks).sum().item()
+            
             total_intersection += intersection
-            total_union += union
+            total_union_dice += union_dice
+            total_union_iou += union_iou
 
         progress_bar.set_postfix(loss=loss.item())
 
     avg_loss = total_loss / len(dataloader.dataset)
     accuracy = total_correct / total_pixels
-    dice = (2.0 * total_intersection + 1e-7) / (total_union + 1e-7)
-    return EpochMetrics(loss=avg_loss, accuracy=accuracy, dice=dice)
+    # Calculate dice using the same formula for consistency
+    dice = (2.0 * total_intersection + 1e-7) / (total_union_dice + 1e-7)
+    # Calculate IOU: intersection / union
+    iou = (total_intersection + 1e-7) / (total_union_iou + 1e-7)
+    return EpochMetrics(loss=avg_loss, accuracy=accuracy, dice=dice, iou=iou)
 
 
 @torch.no_grad()
@@ -133,7 +224,8 @@ def evaluate(
     total_correct = 0.0
     total_pixels = 0.0
     total_intersection = 0.0
-    total_union = 0.0
+    total_union_dice = 0.0  # For Dice: sum of preds + sum of targets
+    total_union_iou = 0.0    # For IOU: actual union (preds + targets - intersection)
 
     progress_bar = tqdm(dataloader, desc=desc, leave=False)
     for images, masks in progress_bar:
@@ -150,16 +242,22 @@ def evaluate(
         total_pixels += float(masks.numel())
 
         intersection = (preds * masks).sum().item()
-        union = preds.sum().item() + masks.sum().item()
+        union_dice = preds.sum().item() + masks.sum().item()
+        union_iou = (preds + masks - preds * masks).sum().item()
+        
         total_intersection += intersection
-        total_union += union
+        total_union_dice += union_dice
+        total_union_iou += union_iou
 
         progress_bar.set_postfix(loss=loss.item())
 
     avg_loss = total_loss / len(dataloader.dataset)
     accuracy = total_correct / total_pixels
-    dice = (2.0 * total_intersection + 1e-7) / (total_union + 1e-7)
-    return EpochMetrics(loss=avg_loss, accuracy=accuracy, dice=dice)
+    # Calculate dice using the same formula for consistency
+    dice = (2.0 * total_intersection + 1e-7) / (total_union_dice + 1e-7)
+    # Calculate IOU: intersection / union
+    iou = (total_intersection + 1e-7) / (total_union_iou + 1e-7)
+    return EpochMetrics(loss=avg_loss, accuracy=accuracy, dice=dice, iou=iou)
 
 
 def create_model(
@@ -259,12 +357,14 @@ def run_training_loop(
         print(
             f"Train -> Loss: {train_metrics.loss:.4f}, "
             f"Acc: {train_metrics.accuracy*100:.2f}%, "
-            f"Dice: {train_metrics.dice:.4f}"
+            f"Dice: {train_metrics.dice:.4f}, "
+            f"IOU: {train_metrics.iou:.4f}"
         )
         print(
             f"Val   -> Loss: {val_metrics.loss:.4f}, "
             f"Acc: {val_metrics.accuracy*100:.2f}%, "
-            f"Dice: {val_metrics.dice:.4f}"
+            f"Dice: {val_metrics.dice:.4f}, "
+            f"IOU: {val_metrics.iou:.4f}"
         )
 
         if scheduler is not None:
@@ -286,4 +386,60 @@ def run_training_loop(
             print(f"✅ Saved new best model to '{model_save_path}' (best {monitor_metric}: {best_metric:.4f})")
 
     return history
+
+
+def plot_training_history(
+    history: TrainingHistory,
+    *,
+    save_path: Optional[str] = None,
+    show_plot: bool = True,
+) -> None:
+    """
+    Plot training and validation accuracy and loss graphs.
+    
+    Args:
+        history: TrainingHistory object containing training and validation metrics.
+        save_path: Optional path to save the plot. If None, plot is not saved.
+        show_plot: Whether to display the plot. Default is True.
+    """
+    epochs = range(1, len(history.train) + 1)
+    
+    # Extract metrics
+    train_loss = [m.loss for m in history.train]
+    val_loss = [m.loss for m in history.validation]
+    train_acc = [m.accuracy for m in history.train]
+    val_acc = [m.accuracy for m in history.validation]
+    
+    # Create figure with subplots
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Plot accuracy
+    axes[0].plot(epochs, train_acc, 'b-', label='Training Accuracy', linewidth=2)
+    axes[0].plot(epochs, val_acc, 'r-', label='Validation Accuracy', linewidth=2)
+    axes[0].set_title('Model Accuracy', fontsize=14, fontweight='bold')
+    axes[0].set_xlabel('Epoch', fontsize=12)
+    axes[0].set_ylabel('Accuracy', fontsize=12)
+    axes[0].legend(loc='best', fontsize=11)
+    axes[0].grid(True, alpha=0.3)
+    axes[0].set_ylim([0, 1])
+    
+    # Plot loss
+    axes[1].plot(epochs, train_loss, 'b-', label='Training Loss', linewidth=2)
+    axes[1].plot(epochs, val_loss, 'r-', label='Validation Loss', linewidth=2)
+    axes[1].set_title('Model Loss', fontsize=14, fontweight='bold')
+    axes[1].set_xlabel('Epoch', fontsize=12)
+    axes[1].set_ylabel('Loss', fontsize=12)
+    axes[1].legend(loc='best', fontsize=11)
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"📊 Training history plot saved to '{save_path}'")
+    
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
 
