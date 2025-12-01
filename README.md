@@ -4,7 +4,7 @@
 
 Best validation metrics observed over 20 epochs for each encoder variant.
 
-| Encoder         | Best Val Dice | Predicted Val IoU | Best Val Accuracy | Best Val Loss | Notes                                                                |
+| Encoder         | Best Val Dice | Val IoU | Best Val Accuracy | Best Val Loss | Notes                                                                |
 | --------------- | ------------: | ----------------: | ----------------: | ------------: | -------------------------------------------------------------------- |
 | VGG16           |        0.9299 |            0.8692 |            96.82% |        0.0839 | Taken from the highest recorded validation Dice in the VGG16 run.    |
 | ResNet-18       |        0.9318 |            0.8721 |            96.96% |        0.0800 | Highest validation Dice observed across epochs in the ResNet-18 run. |
@@ -18,7 +18,7 @@ Best validation metrics observed over 20 epochs for each encoder variant.
 
 Reported performance on the held-out test set.
 
-| Encoder         | Test Loss | Test Accuracy | Test Dice | Predicted Test IoU |
+| Encoder         | Test Loss | Test Accuracy | Test Dice | Test IoU |
 | --------------- | --------: | ------------: | --------: | -----------------: |
 | EfficientNet-B7 |    0.0751 |        97.20% |    0.9422 |             0.8906 |
 | InceptionV4     |    0.0784 |        97.04% |    0.9393 |             0.8856 |
